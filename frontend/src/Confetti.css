@@ -1,0 +1,40 @@
+/* Confetti Animation Styles */
+
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.confetti-particle {
+  position: absolute;
+  animation: confetti-fall var(--duration) ease-out var(--delay) forwards;
+  opacity: 1;
+}
+
+.confetti-circle { border-radius: 50%; }
+.confetti-square { border-radius: 2px; }
+.confetti-triangle {
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 10px solid;
+  background: transparent !important;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), calc(var(--ty) + 400px)) rotate(var(--spin)) scale(0.3);
+    opacity: 0;
+  }
+}
