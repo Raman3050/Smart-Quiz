@@ -5,7 +5,7 @@ import Results from './Results'
 import Confetti from './Confetti'
 import './SharedQuiz.css'
 
-const API_BASE = 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 export default function SharedQuiz() {
   const { quizId } = useParams()

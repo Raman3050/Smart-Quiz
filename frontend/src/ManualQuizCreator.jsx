@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import './ManualQuizCreator.css'
 
-const API_BASE = 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 const LETTERS = ['A', 'B', 'C', 'D']
 
 const DIFFICULTIES = [

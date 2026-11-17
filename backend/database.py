@@ -9,7 +9,13 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "smart_quiz.db"
+# Use /tmp on Vercel (serverless filesystem is read-only except /tmp)
+import os
+
+if os.environ.get("VERCEL"):
+    DB_PATH = Path("/tmp/smart_quiz.db")
+else:
+    DB_PATH = Path(__file__).parent / "smart_quiz.db"
 
 
 def _get_connection() -> sqlite3.Connection:

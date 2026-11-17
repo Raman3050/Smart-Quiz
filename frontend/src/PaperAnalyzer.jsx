@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import './PaperAnalyzer.css'
 
-const API_BASE = 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 const TOPIC_COUNTS = [5, 10, 15, 20]
 const LETTERS = ['A', 'B', 'C', 'D']
 

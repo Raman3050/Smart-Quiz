@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './QuizList.css'
 
-const API_BASE = 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 export default function QuizList() {
   const [quizzes, setQuizzes] = useState([])

@@ -11,7 +11,7 @@ import SharedQuiz from './SharedQuiz'
 import ResultsDashboard from './ResultsDashboard'
 import './App.css'
 
-const API_BASE = 'http://localhost:8001'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 const LOADING_STEPS = [
   { label: 'Uploading PDF...', duration: 1500 },
