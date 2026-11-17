@@ -2,38 +2,50 @@
 
 Upload study materials or previous year question papers, generate and customize quizzes, analyze high-probability exam topics, share quizzes with students, and export detailed results to Excel.
 
+🌐 **Live Demo:** [https://smart-quiz-3r6yyol4r-ramanbajaj0305-7924s-projects.vercel.app/](https://smart-quiz-3r6yyol4r-ramanbajaj0305-7924s-projects.vercel.app/)
+
+---
+
 ## 🏗️ Architecture
 
 ```
 Smart Quiz/
-├── backend/                  # FastAPI + Python
-│   ├── main.py               # API server with CORS & all endpoints
+├── api/                      # Vercel Serverless Function entry point
+│   ├── index.py              # Exposes FastAPI app to @vercel/python
+│   └── requirements.txt      # Python dependencies for serverless runtime
+│
+├── backend/                  # FastAPI + Python (Core backend logic)
+│   ├── main.py               # API server with CORS & endpoints
 │   ├── database.py           # SQLite persistence (quizzes & submissions)
 │   ├── pdf_extractor.py      # PDF text extraction (pdfplumber)
-│   ├── quiz_generator.py     # AI quiz question generator
+│   ├── quiz_generator.py     # AI quiz question generator (Groq API)
 │   ├── paper_analyzer.py     # Multi-paper exam topic & probability analyzer
 │   ├── create_demo_pdf.py    # Demo PDF generator
-│   ├── requirements.txt      # Python dependencies (includes openpyxl)
-│   └── .env                  # API key configuration
+│   ├── requirements.txt      # Local Python dependencies
+│   └── .env.example          # Environment variables template
 │
-└── frontend/                 # React + Vite + React Router
-    ├── src/
-    │   ├── App.jsx            # Main app orchestrator & navigation
-    │   ├── UploadZone.jsx     # Drag-and-drop PDF upload for single-doc quiz
-    │   ├── PaperAnalyzer.jsx  # Multi-PDF question paper pattern analyzer
-    │   ├── ManualQuizCreator.jsx # Manual quiz builder with AI assist
-    │   ├── QuizList.jsx       # Saved quizzes dashboard
-    │   ├── SharedQuiz.jsx     # Student quiz-taking interface
-    │   ├── ResultsDashboard.jsx # Instructor dashboard with Excel export
-    │   ├── Quiz.jsx           # Interactive quiz interface (timer, options)
-    │   ├── Results.jsx        # Animated score ring & question review
-    │   ├── Confetti.jsx       # Celebration effects
-    │   └── *.css              # Cosmic theme styling
-    ├── index.html
-    └── package.json
+├── frontend/                 # React + Vite + React Router
+│   ├── src/
+│   │   ├── App.jsx            # Main app orchestrator & navigation
+│   │   ├── UploadZone.jsx     # Drag-and-drop PDF upload for single-doc quiz
+│   │   ├── PaperAnalyzer.jsx  # Multi-PDF question paper pattern analyzer
+│   │   ├── ManualQuizCreator.jsx # Manual quiz builder with AI assist
+│   │   ├── QuizList.jsx       # Saved quizzes dashboard
+│   │   ├── SharedQuiz.jsx     # Student quiz-taking interface
+│   │   ├── ResultsDashboard.jsx # Instructor dashboard with Excel export
+│   │   ├── Quiz.jsx           # Interactive quiz interface (timer, options)
+│   │   ├── Results.jsx        # Animated score ring & question review
+│   │   ├── Confetti.jsx       # Celebration effects
+│   │   └── *.css              # Cosmic theme styling
+│   ├── index.html
+│   └── package.json
+│
+└── vercel.json               # Vercel deployment & routing configuration
 ```
 
-## 🚀 Quick Start
+---
+
+## 🚀 Quick Start (Local Development)
 
 ### 1. Set up the Backend
 
@@ -49,7 +61,11 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 ```
-Ensure your `GROQ_API_KEY` is set in `backend/.env`.
+Set your `GROQ_API_KEY` in `backend/.env`:
+```env
+GROQ_API_KEY=gsk_your_key_here
+GROQ_MODEL=openai/gpt-oss-120b
+```
 
 ### 3. Start the Backend
 
@@ -72,9 +88,30 @@ npm run dev
 
 ---
 
+## ☁️ Deployment on Vercel
+
+The project is configured for single-project deployment on Vercel using `vercel.json`:
+- **Frontend:** Built statically using Vite (`frontend/dist`)
+- **Backend:** Deployed as a Python serverless function (`api/index.py`) routing all `/api/*` traffic to FastAPI
+
+### Deployment Steps:
+1. Push your repository to GitHub:
+   ```bash
+   git push origin main
+   ```
+2. Import the project into **[Vercel](https://vercel.com)** (Choose **"Other"** as the Framework Preset).
+3. Add the following **Environment Variables** in the Vercel dashboard (**Settings → Environment Variables**):
+   - `GROQ_API_KEY`: Your Groq API key
+   - `GROQ_MODEL`: `openai/gpt-oss-120b` (or preferred model)
+4. Click **Deploy**.
+
+> ⚠️ **Note on SQLite on Serverless:** Vercel functions run in an ephemeral container environment with a temporary `/tmp` filesystem. For permanent persistence across cold starts in production, consider integrating an external database such as Turso, Supabase, or Vercel Postgres.
+
+---
+
 ## 🎯 Features
 
-### 1. 📑 Previous Years Question Paper Analyzer (Separate Feature)
+### 1. 📑 Previous Years Question Paper Analyzer
 - Upload **multiple PDF question papers** at once
 - Cross-paper text analysis identifies recurring patterns and themes
 - Ranks topics by **probability percentage** (high/medium/low priority)
