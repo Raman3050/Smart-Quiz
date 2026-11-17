@@ -1,20 +1,23 @@
 """
 AI Quiz Generator Module
-Uses the Groq API (Llama 3.3 70B) to generate structured quiz questions from text content.
-Fast inference, generous free tier (14,400 requests/day).
+Uses Groq API models to generate structured quiz questions from text content.
+Fast inference, generous free tier.
 """
 
 import json
+import logging
 import os
 from groq import Groq
 from dotenv import load_dotenv
+
+logger = logging.getLogger("uvicorn.error")
 
 SYSTEM_PROMPT = """You are an expert quiz master and educator specializing in competitive exam preparation.
 
 Your task is to analyze the provided text and generate high-quality multiple-choice quiz questions.
 
 STRICT RULES:
-1. Generate exactly the number of questions requested (default: 5).
+1. Generate exactly the number of questions requested.
 2. Questions should test logical reasoning, comprehension, and critical thinking — not just rote memorization.
 3. Each question must have exactly 4 options (A, B, C, D).
 4. Only ONE option should be correct.
@@ -22,20 +25,20 @@ STRICT RULES:
 6. Provide a clear, concise explanation for why the correct answer is right.
 7. Questions should cover different sections/topics of the provided text for variety.
 
-OUTPUT FORMAT — You must return ONLY a valid JSON array, with no extra text, no markdown fences, no commentary. Each element in the array must be an object with exactly these keys:
-
-[
-  {
-    "question": "The question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correct_index": 0,
-    "explanation": "Brief explanation of why this answer is correct."
-  }
-]
+OUTPUT FORMAT — You must return a valid JSON object with a "questions" key containing an array of question objects:
+{
+  "questions": [
+    {
+      "question": "The question text here?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct_index": 0,
+      "explanation": "Brief explanation of why this answer is correct."
+    }
+  ]
+}
 
 Where correct_index is 0-based (0=A, 1=B, 2=C, 3=D).
-
-IMPORTANT: Return ONLY the JSON array. No preamble, no closing remarks, no markdown code fences."""
+Do not include markdown code fences or conversational text."""
 
 
 DIFFICULTY_INSTRUCTIONS = {
@@ -62,10 +65,17 @@ DIFFICULTY_INSTRUCTIONS = {
     ),
 }
 
+# Supported Groq chat models in priority order
+DEFAULT_MODELS = [
+    "openai/gpt-oss-120b",
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-20b",
+]
+
 
 def generate_quiz(text: str, num_questions: int = 5, difficulty: str = "medium") -> list[dict]:
     """
-    Generate quiz questions from the provided text using Groq AI (Llama 3.3 70B).
+    Generate quiz questions from the provided text using Groq AI.
     
     Args:
         text: The extracted text content from a document.
@@ -88,6 +98,15 @@ def generate_quiz(text: str, num_questions: int = 5, difficulty: str = "medium")
 
     client = Groq(api_key=api_key)
 
+    # Build list of candidate models starting with user preference if set
+    env_model = os.getenv("GROQ_MODEL")
+    candidate_models = []
+    if env_model:
+        candidate_models.append(env_model)
+    for model in DEFAULT_MODELS:
+        if model not in candidate_models:
+            candidate_models.append(model)
+
     # Truncate very long texts to stay within token limits
     max_chars = 25000
     if len(text) > max_chars:
@@ -99,24 +118,40 @@ def generate_quiz(text: str, num_questions: int = 5, difficulty: str = "medium")
         f"{diff_instruction}\n\n"
         f"Generate exactly {num_questions} multiple-choice quiz questions "
         f"based on the following text:\n\n---\n{text}\n---\n\n"
-        f"Remember: Output ONLY the JSON array, nothing else."
+        f"Remember: Output a JSON object with a 'questions' array."
     )
 
+    last_error = None
+    response_content = None
+
+    for model_name in candidate_models:
+        try:
+            logger.info(f"Attempting quiz generation with model: {model_name}")
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=4096,
+                response_format={"type": "json_object"},
+            )
+            response_content = response.choices[0].message.content.strip()
+            if response_content:
+                logger.info(f"Successfully generated quiz using {model_name}")
+                break
+        except Exception as e:
+            logger.warning(f"Model {model_name} failed: {e}. Trying next fallback...")
+            last_error = e
+
+    if not response_content:
+        raise RuntimeError(f"Quiz generation failed: {str(last_error)}")
+
     try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.7,
-            max_tokens=4096,
-            response_format={"type": "json_object"},
-        )
+        raw_text = response_content
 
-        raw_text = response.choices[0].message.content.strip()
-
-        # Strip markdown code fences if the model adds them
+        # Strip markdown code fences if present
         if raw_text.startswith("```"):
             lines = raw_text.split("\n")
             lines = [l for l in lines if not l.strip().startswith("```")]
@@ -126,13 +161,16 @@ def generate_quiz(text: str, num_questions: int = 5, difficulty: str = "medium")
 
         # Handle case where model wraps array in an object like {"questions": [...]}
         if isinstance(parsed, dict):
-            # Find the first list value in the dict
-            for key, val in parsed.items():
-                if isinstance(val, list):
-                    parsed = val
-                    break
+            # Check 'questions' key first or find the first list value
+            if "questions" in parsed and isinstance(parsed["questions"], list):
+                parsed = parsed["questions"]
             else:
-                raise ValueError("Response JSON object contains no question array.")
+                for val in parsed.values():
+                    if isinstance(val, list):
+                        parsed = val
+                        break
+                else:
+                    raise ValueError("Response JSON object contains no question array.")
 
         questions = parsed
 
