@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import './ResultsDashboard.css'
 
-const API_BASE = import.meta.env.VITE_API_BASE || ''
+import { API_BASE } from './apiConfig'
 
 export default function ResultsDashboard() {
   const { quizId } = useParams()
