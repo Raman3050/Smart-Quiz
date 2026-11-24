@@ -2,7 +2,7 @@
 
 Upload study materials or previous year question papers, generate and customize quizzes, analyze high-probability exam topics, share quizzes with students, and export detailed results to Excel.
 
-🌐 **Live Demo:** [https://smart-quiz-3r6yyol4r-ramanbajaj0305-7924s-projects.vercel.app/](https://smart-quiz-3r6yyol4r-ramanbajaj0305-7924s-projects.vercel.app/)
+🌐 **Live Demo:** [smart-quiz-seven.vercel.app](https://smart-quiz-seven.vercel.app)
 
 ---
 
@@ -10,21 +10,19 @@ Upload study materials or previous year question papers, generate and customize 
 
 ```
 Smart Quiz/
-├── api/                      # Vercel Serverless Function entry point
-│   ├── index.py              # Exposes FastAPI app to @vercel/python
-│   └── requirements.txt      # Python dependencies for serverless runtime
-│
-├── backend/                  # FastAPI + Python (Core backend logic)
+├── backend/                  # FastAPI + Python → Deployed on Railway
 │   ├── main.py               # API server with CORS & endpoints
 │   ├── database.py           # SQLite persistence (quizzes & submissions)
 │   ├── pdf_extractor.py      # PDF text extraction (pdfplumber)
 │   ├── quiz_generator.py     # AI quiz question generator (Groq API)
 │   ├── paper_analyzer.py     # Multi-paper exam topic & probability analyzer
 │   ├── create_demo_pdf.py    # Demo PDF generator
-│   ├── requirements.txt      # Local Python dependencies
+│   ├── requirements.txt      # Python dependencies
+│   ├── Procfile              # Railway start command
+│   ├── railway.toml          # Railway deployment config
 │   └── .env.example          # Environment variables template
 │
-├── frontend/                 # React + Vite + React Router
+├── frontend/                 # React + Vite + React Router → Deployed on Vercel
 │   ├── src/
 │   │   ├── App.jsx            # Main app orchestrator & navigation
 │   │   ├── UploadZone.jsx     # Drag-and-drop PDF upload for single-doc quiz
@@ -40,7 +38,7 @@ Smart Quiz/
 │   ├── index.html
 │   └── package.json
 │
-└── vercel.json               # Vercel deployment & routing configuration
+└── vercel.json               # Vercel config (frontend-only)
 ```
 
 ---
@@ -88,24 +86,40 @@ npm run dev
 
 ---
 
-## ☁️ Deployment on Vercel
+## ☁️ Deployment
 
-The project is configured for single-project deployment on Vercel using `vercel.json`:
-- **Frontend:** Built statically using Vite (`frontend/dist`)
-- **Backend:** Deployed as a Python serverless function (`api/index.py`) routing all `/api/*` traffic to FastAPI
+The project uses a split deployment:
+- **Frontend** → [Vercel](https://vercel.com) (static hosting, instant global CDN)
+- **Backend** → [Railway](https://railway.com) (always-on server, no cold starts)
 
-### Deployment Steps:
-1. Push your repository to GitHub:
-   ```bash
-   git push origin main
-   ```
-2. Import the project into **[Vercel](https://vercel.com)** (Choose **"Other"** as the Framework Preset).
-3. Add the following **Environment Variables** in the Vercel dashboard (**Settings → Environment Variables**):
-   - `GROQ_API_KEY`: Your Groq API key
-   - `GROQ_MODEL`: `openai/gpt-oss-120b` (or preferred model)
+### Backend — Deploy on Railway
+
+1. Go to [railway.com](https://railway.com) and sign in with GitHub.
+2. Click **"New Project" → "Deploy from GitHub Repo"** and select this repository.
+3. Set the **Root Directory** to `backend` in the service settings.
+4. Add these **Environment Variables** in the Railway dashboard:
+
+   | Variable | Value |
+   |----------|-------|
+   | `GROQ_API_KEY` | Your Groq API key |
+   | `GROQ_MODEL` | `openai/gpt-oss-120b` |
+
+5. Railway auto-detects Python + `requirements.txt` and deploys. The `railway.toml` and `Procfile` are already configured.
+6. Go to **Settings → Networking → Generate Domain** to get your public URL (e.g. `https://smart-quiz-backend-production.up.railway.app`).
+
+### Frontend — Deploy on Vercel
+
+1. Go to [vercel.com](https://vercel.com) and import the same GitHub repository.
+2. Choose **"Other"** as the Framework Preset.
+3. Add this **Environment Variable**:
+
+   | Variable | Value |
+   |----------|-------|
+   | `VITE_API_BASE` | Your Railway backend URL (e.g. `https://smart-quiz-backend-production.up.railway.app`) |
+
 4. Click **Deploy**.
 
-> ⚠️ **Note on SQLite on Serverless:** Vercel functions run in an ephemeral container environment with a temporary `/tmp` filesystem. For permanent persistence across cold starts in production, consider integrating an external database such as Turso, Supabase, or Vercel Postgres.
+> **Note:** The frontend reads `VITE_API_BASE` at build time. If you change the Railway URL, trigger a redeployment on Vercel.
 
 ---
 
